@@ -1,5 +1,8 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
+from django.urls import reverse
 from .models import Topic
+from .forms import TopicForm, EntryForm
+
 
 # Create your views here.
 
@@ -16,3 +19,29 @@ def topic(request, topic_id):
     entries = topic.entry_set.order_by('-date_added')
     context = {'topic': topic, 'entries': entries}
     return render(request, 'learning_logs/topic.html', context)
+
+def new_topic(request):
+    if request.method != 'POST':
+        form = TopicForm()
+    else:
+        form = TopicForm(data=request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect(reverse('learning_logs:topics'))
+    
+    context = {'form': form}
+    return render(request, 'learning_logs/new_topic.html', context)
+
+def new_entry(request, topic_id):
+    topic = Topic.objects.get(id=topic_id)
+    if request.method != 'POST':
+        form = EntryForm()
+    else:
+        form = EntryForm(data=request.POST)
+        if form.is_valid():
+            new_entry_object = form.save(commit=False)
+            new_entry_object.topic = topic
+            new_entry_object.save()
+            return redirect('learning_logs:topic', topic_id=topic_id)
+    context = {'form': form, 'topic': topic,}
+    return render(request, 'learning_logs/new_entry.html', context)
